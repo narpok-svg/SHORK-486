@@ -3,6 +3,10 @@ name: Build SHORK 486 disk image
 on:
   workflow_dispatch:
 
+env:
+  CROSS_TGZ: i486-linux-musl-cross.tgz
+  CROSS_SHA256: 1b7eceb2022f4a664028dd314c5c44332b601bd271e40f0934b4bc8fd3b0fcf5
+
 jobs:
   build:
     name: Build (Debian trixie container)
@@ -18,6 +22,17 @@ jobs:
 
       - name: Generate build configuration (.env)
         run: bash ci/gen-env.sh shork-486/config.sh shork-486
+
+      # musl.cc times out from GitHub-hosted runners, so the toolchain is
+      # fetched from a release asset on this fork instead. build.sh skips its
+      # own download when build/<cross>.tgz already exists.
+      - name: Fetch cross toolchain
+        run: |
+          mkdir -p shork-486/build
+          curl -fL --retry 3 --retry-delay 5 \
+            -o "shork-486/build/$CROSS_TGZ" \
+            "https://github.com/narpok-svg/SHORK-486/releases/download/toolchain-v1/$CROSS_TGZ"
+          echo "$CROSS_SHA256  shork-486/build/$CROSS_TGZ" | sha256sum -c -
 
       - name: Build SHORK 486 Default
         run: docker compose up --build --abort-on-container-exit

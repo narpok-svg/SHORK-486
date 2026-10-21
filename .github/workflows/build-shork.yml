@@ -34,6 +34,13 @@ jobs:
             "https://github.com/narpok-svg/SHORK-486/releases/download/toolchain-v1/$CROSS_TGZ"
           echo "$CROSS_SHA256  shork-486/build/$CROSS_TGZ" | sha256sum -c -
 
+      # The build needs loop devices inside a privileged container; fail fast
+      # here rather than hours into the build.
+      - name: Verify loop device support
+        run: |
+          docker run --rm --privileged debian:trixie-slim \
+            sh -c 'apt-get update -qq && apt-get install -y -qq util-linux >/dev/null && losetup -f'
+
       - name: Build SHORK 486 Default
         run: docker compose up --build --abort-on-container-exit
 

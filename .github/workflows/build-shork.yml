@@ -1,0 +1,38 @@
+name: Build SHORK 486 disk image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (Debian trixie container)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show free disk space
+        run: df -h /
+
+      - name: Generate build configuration (.env)
+        run: bash ci/gen-env.sh shork-486/config.sh shork-486
+
+      - name: Build SHORK 486 Default
+        run: docker compose up --build --abort-on-container-exit
+
+      - name: Show after-build report
+        if: always()
+        run: cat shork-486/images/report.txt || true
+
+      - name: Upload disk image and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shork-486-images
+          path: |
+            shork-486/images/*.img
+            shork-486/images/report.txt
+          if-no-files-found: warn
+          compression-level: 0

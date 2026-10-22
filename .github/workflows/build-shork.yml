@@ -6,6 +6,10 @@ on:
 env:
   CROSS_TGZ: i486-linux-musl-cross.tgz
   CROSS_SHA256: 1b7eceb2022f4a664028dd314c5c44332b601bd271e40f0934b4bc8fd3b0fcf5
+  GMP_TGZ: gmp-6.3.0.tar.xz
+  GMP_SHA256: a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
+  BUSYBOX_TGZ: busybox-1.38.0.tar.bz2
+  BUSYBOX_SHA256: 34f9ea6ff8636f2c9241153b9114eefa9e65674a45318ae1ef95bb5f31c53bb2
 
 jobs:
   build:
@@ -23,9 +27,9 @@ jobs:
       - name: Generate build configuration (.env)
         run: bash ci/gen-env.sh shork-486/config.sh shork-486
 
-      # musl.cc times out from GitHub-hosted runners, so the toolchain is
-      # fetched from a release asset on this fork instead. build.sh skips its
-      # own download when build/<cross>.tgz already exists.
+      # musl.cc, gmplib.org and busybox.net time out from GitHub-hosted
+      # runners, so those archives are mirrored as release assets on this
+      # fork. build.sh skips its own download when the archive already exists.
       - name: Fetch cross toolchain
         run: |
           mkdir -p shork-486/build
@@ -33,6 +37,17 @@ jobs:
             -o "shork-486/build/$CROSS_TGZ" \
             "https://github.com/narpok-svg/SHORK-486/releases/download/toolchain-v1/$CROSS_TGZ"
           echo "$CROSS_SHA256  shork-486/build/$CROSS_TGZ" | sha256sum -c -
+
+      - name: Fetch blocked source archives
+        run: |
+          for spec in "$GMP_TGZ:$GMP_SHA256" "$BUSYBOX_TGZ:$BUSYBOX_SHA256"; do
+            name="${spec%%:*}"
+            sum="${spec##*:}"
+            curl -fL --retry 3 --retry-delay 5 \
+              -o "shork-486/build/$name" \
+              "https://github.com/narpok-svg/SHORK-486/releases/download/toolchain-v1/$name"
+            echo "$sum  shork-486/build/$name" | sha256sum -c -
+          done
 
       # The build needs loop devices inside a privileged container; fail fast
       # here rather than hours into the build.

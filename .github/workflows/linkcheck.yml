@@ -1,0 +1,23 @@
+name: Host reachability check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check download hosts
+        run: |
+          hosts="altushost-bul.dl.sourceforge.net altushost-swe.dl.sourceforge.net busybox.net chrony-project.org curl.se deac-fra.dl.sourceforge.net deb.debian.org dev.yorhel.nl download.gnome.org download.savannah.gnu.org downloads.isc.org fossies.org ftp.gnu.org ftp.netbsd.org git.code.sf.net git.kernel.org git.musl-libc.org gitlab.com gitlab.freedesktop.org gmplib.org gnupg.org invisible-mirror.net kerberos.org mirrors.edge.kernel.org more.musl.cc musl.cc os.ghalkes.nl pushbx.org salsa.debian.org sh.rustup.rs unifoundry.com unlimited.dl.sourceforge.net www.cpan.org www.freedesktop.org www.gnupg.org www.ibiblio.org www.lua.org www.nano-editor.org www.sudo.ws www.tcpdump.org www.wireshark.org xorg.freedesktop.org"
+          for h in $hosts; do
+            out=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 12 "https://$h/" 2>&1)
+            rc=$?
+            printf '%-45s rc=%-3s http=%s\n' "$h" "$rc" "$out"
+          done
+
+      - name: Check git.kernel.org clone access
+        run: |
+          timeout 45 git ls-remote https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git HEAD && echo "GIT OK" || echo "GIT FAILED"
